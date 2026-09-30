@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador y Validador de QR Temporales - Ricardo Iermito TIC C.E.T Nº 3</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- QRCode JS CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-poster, #printable-poster * {
+                visibility: visible;
+            }
+            #printable-poster {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: white !important;
+                color: black !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 2rem !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
+
+    <!-- Header Principal (Oculto en Impresión) -->
+    <header class="no-print border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-brand-600/20 text-brand-400 rounded-xl border border-brand-500/30">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        Generador QR por Horario Recurrente
+                    </h1>
+                    <p class="text-xs text-brand-300 font-medium">
+                        Desarrollado por Ricardo Iermito - TIC C.E.T Nº 3
+                    </p>
+                </div>
+            </div>
+
+            <div id="mode-selector-bar" class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                <button id="nav-mode-gen" onclick="switchView('generator')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-2">
+                    <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Panel Generador
+                </button>
+                <button id="nav-mode-val" onclick="switchView('validator')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Probar Validador
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+
+        <!-- Vista Generador de Códigos QR -->
+        <div id="view-generator" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-7 space-y-6">
+                
+                <form id="qr-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    
+                    <!-- Configuración de URLs -->
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <i data-lucide="globe" class="w-4 h-4 text-brand-400"></i>
+                            1. Configuración de Enlaces (Hosting)
+                        </h2>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="target-content" class="block text-xs font-medium text-slate-300 mb-1.5">URL de Destino Final (Página Web Real)</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                        <i data-lucide="link" class="w-4 h-4"></i>
+                                    </div>
+                                    <input type="text" id="target-content" required value="google.com" placeholder="https://mi-menu-o-sitio.com" 
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-white placeholder-slate-500 text-xs transition-all">
+                                </div>
+                                <p class="mt-1 text-[11px] text-slate-400">Enlace donde será redirigido el usuario si el código se escanea en el horario permitido.</p>
+                            </div>
+
+                            <div>
+                                <label for="app-host-url" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    URL Base de tu Hosting (Donde está alojado este HTML)
+                                </label>
+                                <input type="url" id="app-host-url" required placeholder="https://tu-usuario.github.io/qr-temporal/index.html" 
+                                    class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-brand-500">
+                                <p class="mt-1 text-[11px] text-slate-400">Se autocompleta con tu dirección actual. Al subir este HTML a tu servidor web, el QR enviará a este validador.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Horario Recurrente -->
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <i data-lucide="calendar-clock" class="w-4 h-4 text-brand-400"></i>
+                            2. Reglas de Horario Recurrente Permitido
+                        </h2>
+
+                        <!-- Selección de Días -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2.5">Días Permitidos de Acceso</label>
+                            <div class="flex flex-wrap gap-2" id="days-selector">
+                                <button type="button" data-day="1" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white transition shadow-md">Lun</button>
+                                <button type="button" data-day="2" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white transition shadow-md">Mar</button>
+                                <button type="button" data-day="3" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white transition shadow-md">Mié</button>
+                                <button type="button" data-day="4" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white transition shadow-md">Jue</button>
+                                <button type="button" data-day="5" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white transition shadow-md">Vie</button>
+                                <button type="button" data-day="6" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition">Sáb</button>
+                                <button type="button" data-day="0" onclick="toggleDay(this)" class="day-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition">Dom</button>
+                            </div>
+                        </div>
+
+                        <!-- Selección de Rango de Horas -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="sched-start" class="block text-xs font-medium text-slate-300 mb-1">Hora de Inicio (Habilitación)</label>
+                                <input type="time" id="sched-start" value="08:00" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label for="sched-end" class="block text-xs font-medium text-slate-300 mb-1">Hora de Fin (Deshabilitación)</label>
+                                <input type="time" id="sched-end" value="18:00" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="poster-title" class="block text-xs font-medium text-slate-300 mb-1">Título del Cartel Imprimible</label>
+                            <input type="text" id="poster-title" value="Escanea para Acceder" placeholder="Ej: Menú de Almuerzo / Acceso C.E.T Nº 3" 
+                                class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500">
+                        </div>
+                    </div>
+
+                    <!-- Botón Generar QR -->
+                    <button type="submit" class="w-full py-4 px-6 bg-brand-600 hover:bg-brand-500 text-white rounded-2xl font-bold text-sm shadow-xl shadow-brand-600/30 transition flex items-center justify-center gap-2 transform active:scale-[0.99]">
+                        <i data-lucide="qr-code" class="w-5 h-5"></i>
+                        Generar Código QR
+                    </button>
+                </form>
+
+            </div>
+
+            <!-- Vista Previa e Impresión de Cartel -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <div id="printable-poster" class="bg-white text-slate-900 rounded-2xl p-6 shadow-2xl border border-slate-200 flex flex-col items-center text-center relative">
+                    
+                    <div class="no-print absolute top-3 right-3 bg-brand-50 text-brand-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Vista Previa
+                    </div>
+
+                    <h3 id="display-poster-title" class="text-xl font-bold text-slate-900 mt-2 mb-1">Escanea para Acceder</h3>
+                    <p class="text-xs text-slate-500 max-w-xs mb-4">Apunta con la cámara de tu teléfono para ingresar en el horario permitido.</p>
+
+                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 shadow-inner mb-4 flex items-center justify-center min-w-[210px] min-h-[210px]">
+                        <div id="qrcode-canvas"></div>
+                    </div>
+
+                    <div class="w-full bg-slate-100 p-3 rounded-xl text-center space-y-1 border border-slate-200 mb-3">
+                        <div class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Horario de Funcionamiento</div>
+                        <div id="display-poster-days" class="text-xs font-bold text-brand-700">Lun, Mar, Mié, Jue, Vie</div>
+                        <div id="display-poster-hours" class="text-xs font-semibold text-slate-800">De 08:00 a 18:00 hs</div>
+                    </div>
+
+                    <!-- Firma del Desarrollador en Cartel Imprimible -->
+                    <div class="w-full pt-3 border-t border-slate-200 text-[10px] font-semibold text-slate-500 tracking-tight">
+                        Desarrollado por Ricardo Iermito - TIC C.E.T Nº 3
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="space-y-3 no-print">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="window.print()" class="py-3 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-semibold shadow-lg shadow-brand-600/30 transition flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="printer" class="w-4 h-4"></i> Imprimir Cartel
+                        </button>
+                        <button onclick="downloadQRImage()" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-semibold transition flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="download" class="w-4 h-4"></i> Descargar Imagen QR
+                        </button>
+                    </div>
+
+                    <button onclick="simulateScan()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-lg shadow-emerald-900/30 transition flex items-center justify-center gap-2 text-xs">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i> Simular Escaneo Móvil
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Vista Pantalla del Validador (Al Escanear el QR) -->
+        <div id="view-validator" class="max-w-md mx-auto w-full my-auto space-y-6 hidden">
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+                
+                <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-brand-400"></i>
+                        <span>Evaluación de Acceso Temporal</span>
+                    </div>
+                    <div id="live-clock" class="text-xs font-mono font-bold bg-slate-950 border border-slate-800 text-brand-400 px-3 py-1 rounded-full">
+                        --:--:--
+                    </div>
+                </div>
+
+                <div id="validation-screen" class="space-y-6">
+                    <div class="text-center py-10">
+                        <div class="inline-block animate-spin text-brand-500 mb-3">
+                            <i data-lucide="loader-2" class="w-8 h-8"></i>
+                        </div>
+                        <p class="text-xs text-slate-400">Verificando regla de horario...</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-4 border-t border-slate-800/80 text-center">
+                    <p class="text-[11px] text-slate-500 font-medium">
+                        Desarrollado por Ricardo Iermito - TIC C.E.T Nº 3
+                    </p>
+                </div>
+
+            </div>
+
+            <div id="back-to-gen-btn" class="text-center no-print">
+                <button onclick="switchView('generator')" class="text-xs text-slate-400 hover:text-slate-200 transition underline">
+                    &larr; Volver al Panel Generador
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Toast de Notificación -->
+    <div id="toast" class="no-print fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 border border-slate-700 text-slate-200 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 pointer-events-none">
+        <i id="toast-icon" data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toast-msg" class="text-xs font-medium">Notificación</span>
+    </div>
+
+    <script>
+        let qrInstance = null;
+        let generatedQrUrl = "";
+
+        const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+        const dayNamesFull = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+        window.onload = function() {
+            lucide.createIcons();
+            
+            // Autocompletar la URL base de la aplicación con la ubicación actual
+            const hostInput = document.getElementById('app-host-url');
+            if (hostInput) {
+                let currentUrl = window.location.href.split('?')[0];
+                if (currentUrl.startsWith('file://')) {
+                    currentUrl = "https://tu-dominio.com/index.html";
+                }
+                hostInput.value = currentUrl;
+            }
+
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Detectar si la página fue abierta mediante escaneo de QR (posee parámetro 'qrdata')
+            const urlParams = new URLSearchParams(window.location.search);
+            const qrDataParam = urlParams.get('qrdata');
+
+            if (qrDataParam) {
+                switchView('validator');
+                document.getElementById('mode-selector-bar').classList.add('hidden');
+                processAccess(qrDataParam);
+            } else {
+                generateQR();
+            }
+        };
+
+        function updateClock() {
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) {
+                clockEl.innerText = new Date().toLocaleTimeString('es-ES', { hour12: false });
+            }
+        }
+
+        function switchView(view) {
+            const viewGen = document.getElementById('view-generator');
+            const viewVal = document.getElementById('view-validator');
+            const btnGen = document.getElementById('nav-mode-gen');
+            const btnVal = document.getElementById('nav-mode-val');
+
+            if (view === 'generator') {
+                viewGen.classList.remove('hidden');
+                viewVal.classList.add('hidden');
+
+                btnGen.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-2";
+                btnVal.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2";
+            } else {
+                viewGen.classList.add('hidden');
+                viewVal.classList.remove('hidden');
+
+                btnVal.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-2";
+                btnGen.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2";
+            }
+        }
+
+        function toggleDay(btn) {
+            if (btn.classList.contains('bg-brand-600')) {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+                btn.classList.add('bg-slate-800', 'text-slate-400', 'border', 'border-slate-700');
+            } else {
+                btn.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                btn.classList.remove('bg-slate-800', 'text-slate-400', 'border', 'border-slate-700');
+            }
+        }
+
+        function formatValidUrl(raw) {
+            let url = raw.trim();
+            if (!url) return "https://google.com";
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            return url;
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            generateQR();
+            showToast("¡Código QR generado correctamente!");
+        }
+
+        function generateQR() {
+            const targetUrl = formatValidUrl(document.getElementById('target-content').value);
+            const hostUrl = formatValidUrl(document.getElementById('app-host-url').value);
+
+            // Obtener días seleccionados
+            const days = [];
+            const selectedDaysText = [];
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                if (btn.classList.contains('bg-brand-600')) {
+                    const dayNum = parseInt(btn.getAttribute('data-day'));
+                    days.push(dayNum);
+                    selectedDaysText.push(dayNames[dayNum]);
+                }
+            });
+
+            const startTime = document.getElementById('sched-start').value || "08:00";
+            const endTime = document.getElementById('sched-end').value || "18:00";
+
+            // Crear objeto payload codificado
+            const payload = {
+                url: targetUrl,
+                days: days,
+                start: startTime,
+                end: endTime
+            };
+
+            const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
+            
+            // URL con parámetro de validación
+            let baseUrl = hostUrl.split('?')[0];
+            finalQrContent = `${baseUrl}?qrdata=${encodedData}`;
+            generatedQrUrl = finalQrContent;
+
+            // Dibujar QR
+            const container = document.getElementById('qrcode-canvas');
+            container.innerHTML = "";
+
+            qrInstance = new QRCode(container, {
+                text: finalQrContent,
+                width: 210,
+                height: 210,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Actualizar póster imprimible
+            document.getElementById('display-poster-title').innerText = document.getElementById('poster-title').value.trim() || "Escanea para Acceder";
+            document.getElementById('display-poster-days').innerText = selectedDaysText.length > 0 ? selectedDaysText.join(', ') : "Ningún día seleccionado";
+            document.getElementById('display-poster-hours').innerText = `De ${startTime} hs a ${endTime} hs`;
+        }
+
+        function simulateScan() {
+            const urlParams = new URLSearchParams(generatedQrUrl.split('?')[1]);
+            const qrDataParam = urlParams.get('qrdata');
+            switchView('validator');
+            processAccess(qrDataParam);
+        }
+
+        function processAccess(encodedData) {
+            const screen = document.getElementById('validation-screen');
+
+            try {
+                const jsonString = decodeURIComponent(atob(encodedData));
+                const payload = JSON.parse(jsonString);
+
+                const now = new Date();
+                const currentDay = now.getDay(); // 0 = Domingo, 1 = Lunes...
+                const currentHours = String(now.getHours()).padStart(2, '0');
+                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTime = `${currentHours}:${currentMinutes}`;
+
+                const dayMatch = payload.days.includes(currentDay);
+                const timeMatch = currentTime >= payload.start && currentTime <= payload.end;
+
+                const isAllowed = dayMatch && timeMatch;
+
+                if (isAllowed) {
+                    screen.innerHTML = `
+                        <div class="text-center space-y-4 py-4">
+                            <div class="inline-flex items-center justify-center w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-500/40">
+                                <i data-lucide="check-circle" class="w-10 h-10"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Horario Permitido</span>
+                                <h2 class="text-2xl font-black text-white mt-1">ACCESO AUTORIZADO</h2>
+                                <p class="text-xs text-slate-300 mt-1">Redirigiendo al enlace en 2 segundos...</p>
+                            </div>
+                            <a href="${payload.url}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
+                                Abrir Enlace Manualmente <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>`;
+                    lucide.createIcons();
+
+                    setTimeout(() => {
+                        window.location.href = payload.url;
+                    }, 2000);
+
+                } else {
+                    let subtext = "";
+                    if (!dayMatch) {
+                        subtext = `Hoy (${dayNamesFull[currentDay]}) el acceso no se encuentra habilitado.`;
+                    } else {
+                        subtext = `El horario permitido para hoy es de ${payload.start} hs a ${payload.end} hs.`;
+                    }
+
+                    screen.innerHTML = `
+                        <div class="text-center space-y-4 py-4">
+                            <div class="inline-flex items-center justify-center w-20 h-20 bg-red-500/20 text-red-400 rounded-full border border-red-500/40">
+                                <i data-lucide="lock" class="w-10 h-10"></i>
+                            </div>
+
+                            <div>
+                                <span class="text-[10px] uppercase font-bold tracking-widest text-red-400">Acceso Bloqueado</span>
+                                <h2 class="text-xl font-black text-white mt-1">ACCESO DESHABILITADO / FUERA DE HORARIO</h2>
+                                <p class="text-xs text-red-200/90 mt-2 max-w-xs mx-auto font-medium">${subtext}</p>
+                            </div>
+
+                            <div class="p-4 bg-red-950/40 border border-red-900/50 rounded-2xl text-center space-y-1">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-red-300">Horario Configurado</div>
+                                <div class="text-xs text-red-200 font-semibold">
+                                    Días: ${payload.days.map(d => dayNames[d]).join(', ')}
+                                </div>
+                                <div class="text-xs text-red-200 font-semibold">
+                                    Horarios: ${payload.start} hs a ${payload.end} hs
+                                </div>
+                            </div>
+                        </div>`;
+                    lucide.createIcons();
+                }
+
+            } catch (e) {
+                screen.innerHTML = `
+                    <div class="text-center py-6 text-red-400 space-y-2">
+                        <i data-lucide="alert-triangle" class="w-10 h-10 mx-auto"></i>
+                        <h3 class="text-sm font-bold">Error de Lectura</h3>
+                        <p class="text-xs text-slate-400">No se pudo validar la regla de horario del código QR.</p>
+                    </div>`;
+                lucide.createIcons();
+            }
+        }
+
+        function downloadQRImage() {
+            const container = document.getElementById('qrcode-canvas');
+            const img = container.querySelector('img');
+            const canvas = container.querySelector('canvas');
+
+            let src = img ? img.src : (canvas ? canvas.toDataURL("image/png") : null);
+
+            if (!src) {
+                showToast("Genera un código QR primero");
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = 'codigo-qr-temporal.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("Imagen QR descargada");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+
+            toastMsg.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
