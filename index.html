@@ -61,7 +61,7 @@
 </head>
 <body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
 
-    <!-- Header Principal (Oculto en Impresión) -->
+    <!-- Header Principal -->
     <header class="no-print border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
@@ -70,7 +70,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                        Generador QR por Horario Recurrente
+                        Generador QR por Horarios Recurrentes
                     </h1>
                     <p class="text-xs text-brand-300 font-medium">
                         Desarrollado por Ricardo Iermito - TIC C.E.T Nº 3
@@ -114,7 +114,7 @@
                                 <input type="text" id="target-content" required value="google.com" placeholder="https://mi-menu-o-sitio.com" 
                                     class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-white placeholder-slate-500 text-xs transition-all">
                             </div>
-                            <p class="mt-1.5 text-[11px] text-slate-400">Página a la que se enviará al usuario cuando escanee el código en un día y hora autorizados.</p>
+                            <p class="mt-1.5 text-[11px] text-slate-400">Página a la que se enviará al usuario cuando escanee el código en un horario autorizado.</p>
                         </div>
                     </div>
 
@@ -122,7 +122,7 @@
                     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
                         <h2 class="text-base font-semibold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
                             <i data-lucide="calendar-clock" class="w-4 h-4 text-brand-400"></i>
-                            2. Reglas de Horario Recurrente Permitido
+                            2. Días y Rangos de Horario Permitidos
                         </h2>
 
                         <!-- Selección de Días -->
@@ -139,15 +139,16 @@
                             </div>
                         </div>
 
-                        <!-- Selección de Rango de Horas -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="sched-start" class="block text-xs font-medium text-slate-300 mb-1">Hora de Inicio (Habilitación)</label>
-                                <input type="time" id="sched-start" value="08:00" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <!-- Selección de Múltiples Rangos de Horas -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-xs font-medium text-slate-300">Intervalos / Rangos Horarios</label>
+                                <button type="button" onclick="addTimeInterval()" class="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1 transition">
+                                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Agregar Intervalo
+                                </button>
                             </div>
-                            <div>
-                                <label for="sched-end" class="block text-xs font-medium text-slate-300 mb-1">Hora de Fin (Deshabilitación)</label>
-                                <input type="time" id="sched-end" value="18:00" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <div id="intervals-container" class="space-y-3">
+                                <!-- Se agregan dinámicamente -->
                             </div>
                         </div>
 
@@ -184,9 +185,11 @@
                     </div>
 
                     <div class="w-full bg-slate-100 p-3 rounded-xl text-center space-y-1 border border-slate-200 mb-3">
-                        <div class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Horario de Funcionamiento</div>
+                        <div class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Horarios de Funcionamiento</div>
                         <div id="display-poster-days" class="text-xs font-bold text-brand-700">Lun, Mar, Mié, Jue, Vie</div>
-                        <div id="display-poster-hours" class="text-xs font-semibold text-slate-800">De 08:00 a 18:00 hs</div>
+                        <div id="display-poster-hours" class="text-xs font-semibold text-slate-800 space-y-0.5">
+                            <!-- Lista de horas -->
+                        </div>
                     </div>
 
                     <!-- Firma del Desarrollador en Cartel Imprimible -->
@@ -214,7 +217,7 @@
             </div>
         </div>
 
-        <!-- Vista Pantalla del Validador (Al Escanear el QR) -->
+        <!-- Vista Pantalla del Validador -->
         <div id="view-validator" class="max-w-md mx-auto w-full my-auto space-y-6 hidden">
 
             <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
@@ -263,7 +266,6 @@
     </div>
 
     <script>
-        // URL Base fija enviada para tu repositorio en GitHub Pages
         const BASE_HOSTING_URL = "https://referentesticscet3roca-sys.github.io/Generador-QR-Temporal/";
 
         let qrInstance = null;
@@ -278,7 +280,11 @@
             setInterval(updateClock, 1000);
             updateClock();
 
-            // Detectar si la página fue abierta mediante escaneo de QR (posee parámetro 'qrdata')
+            // Agregar intervalos iniciales de ejemplo
+            addTimeInterval("13:00", "13:30");
+            addTimeInterval("15:00", "15:33");
+            addTimeInterval("18:00", "22:32");
+
             const urlParams = new URLSearchParams(window.location.search);
             const qrDataParam = urlParams.get('qrdata');
 
@@ -329,6 +335,37 @@
             }
         }
 
+        function addTimeInterval(startVal = "08:00", endVal = "12:00") {
+            const container = document.getElementById('intervals-container');
+            const div = document.createElement('div');
+            div.className = "interval-row grid grid-cols-12 gap-2 items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800";
+            div.innerHTML = `
+                <div class="col-span-5">
+                    <input type="time" value="${startVal}" required class="sched-start w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="col-span-1 text-center text-xs text-slate-500">a</div>
+                <div class="col-span-5">
+                    <input type="time" value="${endVal}" required class="sched-end w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div class="col-span-1 text-right">
+                    <button type="button" onclick="removeInterval(this)" class="text-slate-500 hover:text-red-400 p-1 transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+        }
+
+        function removeInterval(btn) {
+            const container = document.getElementById('intervals-container');
+            if (container.children.length > 1) {
+                btn.closest('.interval-row').remove();
+            } else {
+                showToast("Debe existir al menos un intervalo de horario");
+            }
+        }
+
         function formatValidUrl(raw) {
             let url = raw.trim();
             if (!url) return "https://google.com";
@@ -347,7 +384,7 @@
         function generateQR() {
             const targetUrl = formatValidUrl(document.getElementById('target-content').value);
 
-            // Obtener días seleccionados
+            // Días seleccionados
             const days = [];
             const selectedDaysText = [];
             document.querySelectorAll('.day-btn').forEach(btn => {
@@ -358,20 +395,26 @@
                 }
             });
 
-            const startTime = document.getElementById('sched-start').value || "08:00";
-            const endTime = document.getElementById('sched-end').value || "18:00";
+            // Capturar múltiples intervalos
+            const intervals = [];
+            const hoursDisplayHTML = [];
+            document.querySelectorAll('.interval-row').forEach(row => {
+                const s = row.querySelector('.sched-start').value;
+                const e = row.querySelector('.sched-end').value;
+                if (s && e) {
+                    intervals.push({ start: s, end: e });
+                    hoursDisplayHTML.push(`<div>De ${s} hs a ${e} hs</div>`);
+                }
+            });
 
-            // Crear objeto payload codificado
             const payload = {
                 url: targetUrl,
                 days: days,
-                start: startTime,
-                end: endTime
+                intervals: intervals
             };
 
             const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
             
-            // Construir URL fija para GitHub Pages
             let cleanBaseUrl = BASE_HOSTING_URL.endsWith('/') ? BASE_HOSTING_URL : BASE_HOSTING_URL + '/';
             finalQrContent = `${cleanBaseUrl}?qrdata=${encodedData}`;
             generatedQrUrl = finalQrContent;
@@ -389,10 +432,10 @@
                 correctLevel: QRCode.CorrectLevel.H
             });
 
-            // Actualizar póster imprimible
+            // Actualizar póster
             document.getElementById('display-poster-title').innerText = document.getElementById('poster-title').value.trim() || "Escanea para Acceder";
             document.getElementById('display-poster-days').innerText = selectedDaysText.length > 0 ? selectedDaysText.join(', ') : "Ningún día seleccionado";
-            document.getElementById('display-poster-hours').innerText = `De ${startTime} hs a ${endTime} hs`;
+            document.getElementById('display-poster-hours').innerHTML = hoursDisplayHTML.length > 0 ? hoursDisplayHTML.join('') : "Sin horarios definidos";
         }
 
         function simulateScan() {
@@ -410,13 +453,20 @@
                 const payload = JSON.parse(jsonString);
 
                 const now = new Date();
-                const currentDay = now.getDay(); // 0 = Domingo, 1 = Lunes...
+                const currentDay = now.getDay();
                 const currentHours = String(now.getHours()).padStart(2, '0');
                 const currentMinutes = String(now.getMinutes()).padStart(2, '0');
                 const currentTime = `${currentHours}:${currentMinutes}`;
 
                 const dayMatch = payload.days.includes(currentDay);
-                const timeMatch = currentTime >= payload.start && currentTime <= payload.end;
+                
+                // Verificar si coincide con AL MENOS UNO de los intervalos configurados
+                let timeMatch = false;
+                if (payload.intervals && payload.intervals.length > 0) {
+                    timeMatch = payload.intervals.some(interval => {
+                        return currentTime >= interval.start && currentTime <= interval.end;
+                    });
+                }
 
                 const isAllowed = dayMatch && timeMatch;
 
@@ -446,8 +496,10 @@
                     if (!dayMatch) {
                         subtext = `Hoy (${dayNamesFull[currentDay]}) el acceso no se encuentra habilitado.`;
                     } else {
-                        subtext = `El horario permitido para hoy es de ${payload.start} hs a ${payload.end} hs.`;
+                        subtext = `La hora actual (${currentTime} hs) está fuera de los rangos autorizados.`;
                     }
+
+                    const intervalsFormatted = payload.intervals.map(i => `${i.start} a ${i.end} hs`).join('<br>');
 
                     screen.innerHTML = `
                         <div class="text-center space-y-4 py-4">
@@ -462,12 +514,12 @@
                             </div>
 
                             <div class="p-4 bg-red-950/40 border border-red-900/50 rounded-2xl text-center space-y-1">
-                                <div class="text-[10px] font-bold uppercase tracking-wider text-red-300">Horario Configurado</div>
-                                <div class="text-xs text-red-200 font-semibold">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-red-300">Horarios Habilitados</div>
+                                <div class="text-xs text-red-200 font-semibold mb-1">
                                     Días: ${payload.days.map(d => dayNames[d]).join(', ')}
                                 </div>
-                                <div class="text-xs text-red-200 font-semibold">
-                                    Horarios: ${payload.start} hs a ${payload.end} hs
+                                <div class="text-xs text-red-200 font-medium">
+                                    ${intervalsFormatted}
                                 </div>
                             </div>
                         </div>`;
