@@ -98,34 +98,23 @@
                 
                 <form id="qr-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
                     
-                    <!-- Configuración de URLs -->
+                    <!-- Configuración de Enlace Final -->
                     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                         <h2 class="text-base font-semibold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
                             <i data-lucide="globe" class="w-4 h-4 text-brand-400"></i>
-                            1. Configuración de Enlaces (Hosting)
+                            1. Enlace de Destino
                         </h2>
 
-                        <div class="space-y-4">
-                            <div>
-                                <label for="target-content" class="block text-xs font-medium text-slate-300 mb-1.5">URL de Destino Final (Página Web Real)</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                                        <i data-lucide="link" class="w-4 h-4"></i>
-                                    </div>
-                                    <input type="text" id="target-content" required value="google.com" placeholder="https://mi-menu-o-sitio.com" 
-                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-white placeholder-slate-500 text-xs transition-all">
+                        <div>
+                            <label for="target-content" class="block text-xs font-medium text-slate-300 mb-1.5">URL de Destino Final (Página Web Real)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                    <i data-lucide="link" class="w-4 h-4"></i>
                                 </div>
-                                <p class="mt-1 text-[11px] text-slate-400">Enlace donde será redirigido el usuario si el código se escanea en el horario permitido.</p>
+                                <input type="text" id="target-content" required value="google.com" placeholder="https://mi-menu-o-sitio.com" 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-white placeholder-slate-500 text-xs transition-all">
                             </div>
-
-                            <div>
-                                <label for="app-host-url" class="block text-xs font-medium text-slate-300 mb-1.5">
-                                    URL Base de tu Hosting (Donde está alojado este HTML)
-                                </label>
-                                <input type="url" id="app-host-url" required placeholder="https://tu-usuario.github.io/qr-temporal/index.html" 
-                                    class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-brand-500">
-                                <p class="mt-1 text-[11px] text-slate-400">Se autocompleta con tu dirección actual. Al subir este HTML a tu servidor web, el QR enviará a este validador.</p>
-                            </div>
+                            <p class="mt-1.5 text-[11px] text-slate-400">Página a la que se enviará al usuario cuando escanee el código en un día y hora autorizados.</p>
                         </div>
                     </div>
 
@@ -274,6 +263,9 @@
     </div>
 
     <script>
+        // URL Base fija enviada para tu repositorio en GitHub Pages
+        const BASE_HOSTING_URL = "https://referentesticscet3roca-sys.github.io/Generador-QR-Temporal/";
+
         let qrInstance = null;
         let generatedQrUrl = "";
 
@@ -282,16 +274,6 @@
 
         window.onload = function() {
             lucide.createIcons();
-            
-            // Autocompletar la URL base de la aplicación con la ubicación actual
-            const hostInput = document.getElementById('app-host-url');
-            if (hostInput) {
-                let currentUrl = window.location.href.split('?')[0];
-                if (currentUrl.startsWith('file://')) {
-                    currentUrl = "https://tu-dominio.com/index.html";
-                }
-                hostInput.value = currentUrl;
-            }
 
             setInterval(updateClock, 1000);
             updateClock();
@@ -364,7 +346,6 @@
 
         function generateQR() {
             const targetUrl = formatValidUrl(document.getElementById('target-content').value);
-            const hostUrl = formatValidUrl(document.getElementById('app-host-url').value);
 
             // Obtener días seleccionados
             const days = [];
@@ -390,9 +371,9 @@
 
             const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
             
-            // URL con parámetro de validación
-            let baseUrl = hostUrl.split('?')[0];
-            finalQrContent = `${baseUrl}?qrdata=${encodedData}`;
+            // Construir URL fija para GitHub Pages
+            let cleanBaseUrl = BASE_HOSTING_URL.endsWith('/') ? BASE_HOSTING_URL : BASE_HOSTING_URL + '/';
+            finalQrContent = `${cleanBaseUrl}?qrdata=${encodedData}`;
             generatedQrUrl = finalQrContent;
 
             // Dibujar QR
