@@ -180,8 +180,9 @@
                     <h3 id="display-poster-title" class="text-xl font-bold text-slate-900 mt-2 mb-1">Escanea para Acceder</h3>
                     <p class="text-xs text-slate-500 max-w-xs mb-4">Apunta con la cámara de tu teléfono para ingresar en el horario permitido.</p>
 
-                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 shadow-inner mb-4 flex items-center justify-center min-w-[210px] min-h-[210px]">
-                        <div id="qrcode-canvas"></div>
+                    <!-- Contenedor con margen blanco de protección para Google Lens -->
+                    <div class="bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm mb-4 flex items-center justify-center">
+                        <div id="qrcode-canvas" class="bg-white p-2"></div>
                     </div>
 
                     <div class="w-full bg-slate-100 p-3 rounded-xl text-center space-y-1 border border-slate-200 mb-3">
@@ -280,7 +281,6 @@
             setInterval(updateClock, 1000);
             updateClock();
 
-            // Agregar intervalos iniciales de ejemplo
             addTimeInterval("13:00", "13:30");
             addTimeInterval("15:00", "15:33");
             addTimeInterval("18:00", "22:32");
@@ -378,13 +378,12 @@
         function handleFormSubmit(e) {
             e.preventDefault();
             generateQR();
-            showToast("¡Código QR generado correctamente!");
+            showToast("¡Código QR optimizado generado!");
         }
 
         function generateQR() {
             const targetUrl = formatValidUrl(document.getElementById('target-content').value);
 
-            // Días seleccionados
             const days = [];
             const selectedDaysText = [];
             document.querySelectorAll('.day-btn').forEach(btn => {
@@ -395,22 +394,22 @@
                 }
             });
 
-            // Capturar múltiples intervalos
             const intervals = [];
             const hoursDisplayHTML = [];
             document.querySelectorAll('.interval-row').forEach(row => {
                 const s = row.querySelector('.sched-start').value;
                 const e = row.querySelector('.sched-end').value;
                 if (s && e) {
-                    intervals.push({ start: s, end: e });
+                    intervals.push([s, e]); // Formato reducido [inicio, fin]
                     hoursDisplayHTML.push(`<div>De ${s} hs a ${e} hs</div>`);
                 }
             });
 
+            // Estructura optimizada/comprimida para reducir tamaño del QR
             const payload = {
-                url: targetUrl,
-                days: days,
-                intervals: intervals
+                u: targetUrl,
+                d: days,
+                i: intervals
             };
 
             const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
@@ -419,20 +418,19 @@
             finalQrContent = `${cleanBaseUrl}?qrdata=${encodedData}`;
             generatedQrUrl = finalQrContent;
 
-            // Dibujar QR
             const container = document.getElementById('qrcode-canvas');
             container.innerHTML = "";
 
+            // Mayor resolución (300px) y nivel M de corrección para lectura ágil en cámaras
             qrInstance = new QRCode(container, {
                 text: finalQrContent,
-                width: 210,
-                height: 210,
-                colorDark: "#0f172a",
+                width: 300,
+                height: 300,
+                colorDark: "#000000",
                 colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+                correctLevel: QRCode.CorrectLevel.M
             });
 
-            // Actualizar póster
             document.getElementById('display-poster-title').innerText = document.getElementById('poster-title').value.trim() || "Escanea para Acceder";
             document.getElementById('display-poster-days').innerText = selectedDaysText.length > 0 ? selectedDaysText.join(', ') : "Ningún día seleccionado";
             document.getElementById('display-poster-hours').innerHTML = hoursDisplayHTML.length > 0 ? hoursDisplayHTML.join('') : "Sin horarios definidos";
@@ -452,19 +450,25 @@
                 const jsonString = decodeURIComponent(atob(encodedData));
                 const payload = JSON.parse(jsonString);
 
+                // Soporte para formato abreviado (u, d, i) o completo (url, days, intervals)
+                const targetUrl = payload.u || payload.url;
+                const allowedDays = payload.d || payload.days || [];
+                const allowedIntervals = payload.i || payload.intervals || [];
+
                 const now = new Date();
                 const currentDay = now.getDay();
                 const currentHours = String(now.getHours()).padStart(2, '0');
                 const currentMinutes = String(now.getMinutes()).padStart(2, '0');
                 const currentTime = `${currentHours}:${currentMinutes}`;
 
-                const dayMatch = payload.days.includes(currentDay);
+                const dayMatch = allowedDays.includes(currentDay);
                 
-                // Verificar si coincide con AL MENOS UNO de los intervalos configurados
                 let timeMatch = false;
-                if (payload.intervals && payload.intervals.length > 0) {
-                    timeMatch = payload.intervals.some(interval => {
-                        return currentTime >= interval.start && currentTime <= interval.end;
+                if (allowedIntervals && allowedIntervals.length > 0) {
+                    timeMatch = allowedIntervals.some(interval => {
+                        const start = Array.isArray(interval) ? interval[0] : interval.start;
+                        const end = Array.isArray(interval) ? interval[1] : interval.end;
+                        return currentTime >= start && currentTime <= end;
                     });
                 }
 
@@ -481,14 +485,14 @@
                                 <h2 class="text-2xl font-black text-white mt-1">ACCESO AUTORIZADO</h2>
                                 <p class="text-xs text-slate-300 mt-1">Redirigiendo al enlace en 2 segundos...</p>
                             </div>
-                            <a href="${payload.url}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
+                            <a href="${targetUrl}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition">
                                 Abrir Enlace Manualmente <i data-lucide="arrow-right" class="w-4 h-4"></i>
                             </a>
                         </div>`;
                     lucide.createIcons();
 
                     setTimeout(() => {
-                        window.location.href = payload.url;
+                        window.location.href = targetUrl;
                     }, 2000);
 
                 } else {
@@ -499,7 +503,11 @@
                         subtext = `La hora actual (${currentTime} hs) está fuera de los rangos autorizados.`;
                     }
 
-                    const intervalsFormatted = payload.intervals.map(i => `${i.start} a ${i.end} hs`).join('<br>');
+                    const intervalsFormatted = allowedIntervals.map(i => {
+                        const s = Array.isArray(i) ? i[0] : i.start;
+                        const e = Array.isArray(i) ? i[1] : i.end;
+                        return `${s} a ${e} hs`;
+                    }).join('<br>');
 
                     screen.innerHTML = `
                         <div class="text-center space-y-4 py-4">
@@ -516,7 +524,7 @@
                             <div class="p-4 bg-red-950/40 border border-red-900/50 rounded-2xl text-center space-y-1">
                                 <div class="text-[10px] font-bold uppercase tracking-wider text-red-300">Horarios Habilitados</div>
                                 <div class="text-xs text-red-200 font-semibold mb-1">
-                                    Días: ${payload.days.map(d => dayNames[d]).join(', ')}
+                                    Días: ${allowedDays.map(d => dayNames[d]).join(', ')}
                                 </div>
                                 <div class="text-xs text-red-200 font-medium">
                                     ${intervalsFormatted}
